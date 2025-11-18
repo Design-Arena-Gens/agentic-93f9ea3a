@@ -1,0 +1,205 @@
+ESP32-CAM FACE RECOGNITION SYSTEM - CIRCUIT DIAGRAM
+====================================================
+
+PROGRAMMATION (Téléversement du code):
+--------------------------------------
+
+    Computer USB
+        |
+   [FTDI Adapter]
+     |  |  |  |
+     |  |  |  +------ TX  ------>  U0R (RX) [ESP32-CAM]
+     |  |  +--------- RX  ------>  U0T (TX) [ESP32-CAM]
+     |  +------------ GND ------>  GND      [ESP32-CAM]
+     +--------------- 5V  ------>  5V       [ESP32-CAM]
+                                    |
+     GND (FTDI) --------------->  GPIO0 (Mode programmation)
+                                    |
+                                [RESET] Button
+
+
+FONCTIONNEMENT NORMAL (Après programmation):
+---------------------------------------------
+
+                        ESP32-CAM (AI-Thinker)
+                     ┌──────────────────────┐
+                     │                      │
+    [5V/2A Power] ───┤ 5V              GND  ├─── [GND]
+                     │                      │
+                     │  ┌──────────────┐    │
+                     │  │   OV2640     │    │
+                     │  │   Camera     │    │
+                     │  └──────────────┘    │
+                     │                      │
+                     │ GPIO12          LED  ├─── GPIO4 (Built-in LED)
+                     │   |                  │
+                     └───┼──────────────────┘
+                         |
+                         |
+                         v
+                   [Relay Module]
+                  ┌──────────────┐
+    [ESP32] ──────┤ IN      COM  ├─── [Common]
+                  │              │
+    [5V]    ──────┤ VCC      NO  ├─── [Normally Open - Charge +]
+                  │              │
+    [GND]   ──────┤ GND      NC  ├─── [Normally Closed - Charge +]
+                  └──────────────┘
+
+    Charge (Serrure, Lumière, etc.)
+                  ┌──────────────┐
+    [+12V]  ──────┤     Device   │
+                  │              │
+    [Relay NO] ───┤              │
+                  │              │
+    [GND]     ────┤              │
+                  └──────────────┘
+
+
+PINOUT ESP32-CAM (AI-Thinker):
+-------------------------------
+
+              ┌─────────────────────┐
+              │                     │
+     RESET ───┤ 1             22 ───┤ 5V
+              │                     │
+     GND   ───┤ 2             21 ───┤ GND
+              │                     │
+     GPIO12───┤ 3 (RELAY)     20 ───┤ GPIO13 (HS2_DATA2)
+              │                     │
+     GPIO13───┤ 4             19 ───┤ GPIO12 (HS2_DATA0)
+              │                     │
+     GPIO15───┤ 5             18 ───┤ GPIO14 (HS2_CLK)
+              │                     │
+     GPIO14───┤ 6             17 ───┤ GPIO15 (HS2_CMD)
+              │                     │
+     GPIO2 ───┤ 7             16 ───┤ GPIO1 (U0T/TX)
+              │                     │
+     GPIO4 ───┤ 8 (LED)       15 ───┤ GPIO3 (U0R/RX)
+              │                     │
+     GND   ───┤ 9             14 ───┤ GPIO16
+              │                     │
+     VCC   ───┤10             13 ───┤ GND
+              │                     │
+     GPIO0 ───┤11 (BOOT)      12 ───┤ 5V
+              │                     │
+              └─────────────────────┘
+                   USB Camera
+
+CAMÉRA (OV2640) - Connexion interne:
+------------------------------------
+SIOD (I2C SDA) --- GPIO26
+SIOC (I2C SCL) --- GPIO27
+Y9             --- GPIO35
+Y8             --- GPIO34
+Y7             --- GPIO39
+Y6             --- GPIO36
+Y5             --- GPIO21
+Y4             --- GPIO19
+Y3             --- GPIO18
+Y2             --- GPIO5
+VSYNC          --- GPIO25
+HREF           --- GPIO23
+PCLK           --- GPIO22
+XCLK           --- GPIO0
+PWDN           --- GPIO32
+RESET          --- -1 (non utilisé)
+
+
+RELAY MODULE SPECIFICATIONS:
+-----------------------------
+Type: 1-Channel 5V Relay Module
+Trigger: LOW level (0V = ON, 5V = OFF)
+Current: 10mA (signal)
+Load: 250VAC/10A or 30VDC/10A (max)
+
+COM (Common)   : Point commun
+NO (Normally Open)  : Ouvert par défaut, fermé quand relais actif
+NC (Normally Closed): Fermé par défaut, ouvert quand relais actif
+
+
+POWER REQUIREMENTS:
+-------------------
+ESP32-CAM: 5V / 500-1000mA (pic lors capture photo)
+Relay Module: 5V / 15-20mA
+Total minimum: 5V / 2A recommended
+
+⚠️  IMPORTANT: Utiliser alimentation de qualité
+    USB PC peut ne pas fournir assez de courant
+    Recommandation: Adaptateur secteur 5V/2A
+
+
+CONNEXIONS DÉTAILLÉES:
+----------------------
+
+Pour PROGRAMMATION:
+  FTDI GND  → ESP32-CAM GND
+  FTDI 5V   → ESP32-CAM 5V
+  FTDI TX   → ESP32-CAM U0R (RX)
+  FTDI RX   → ESP32-CAM U0T (TX)
+  FTDI GND  → ESP32-CAM GPIO0 (pendant upload uniquement!)
+
+Pour FONCTIONNEMENT:
+  Power 5V  → ESP32-CAM 5V
+  Power GND → ESP32-CAM GND
+
+  ESP32-CAM GPIO12 → Relay IN
+  ESP32-CAM 5V     → Relay VCC
+  ESP32-CAM GND    → Relay GND
+
+  Relay COM → Device Power +
+  Relay NO  → Device (activé si reconnu)
+  Device -  → Power GND
+
+
+EXEMPLE D'APPLICATION - Serrure Électrique:
+-------------------------------------------
+
+    [12V Power Supply]
+           |
+           +─────────────┐
+           |             |
+        [+ 12V]       [GND]
+           |             |
+           |             +──────── Serrure (-)
+           |                          |
+    [Relay COM]                       |
+           |                          |
+    [Relay NO] ───────────────────────┘
+
+    Quand visage reconnu:
+    - Relais s'active
+    - NO se ferme
+    - Courant passe dans serrure
+    - Serrure s'ouvre pendant 3 secondes
+    - Relais se désactive
+    - NO s'ouvre
+    - Serrure se referme
+
+
+NOTES DE SÉCURITÉ:
+------------------
+⚠️  Ne pas dépasser 10A sur le relais
+⚠️  Isoler correctement les connexions haute tension
+⚠️  Utiliser fusible de protection
+⚠️  Ne jamais toucher les connexions sous tension
+⚠️  Tester d'abord avec charge faible (LED)
+⚠️  Vérifier polarité avant connexion
+
+
+STATUS LED INDICATORS:
+----------------------
+LED Rouge (Power):    Alimentation OK
+LED Blanche (Flash):  GPIO4 - Indication reconnaissance
+LED Bleue (Status):   Activité WiFi/Programmation (si présente)
+
+
+TEST PROCEDURE:
+---------------
+1. Alimenter ESP32-CAM (LED rouge s'allume)
+2. Attendre boot (~2 secondes)
+3. Montrer visage → LED blanche clignote
+4. Si reconnu → Relais CLIC (activation)
+5. LED blanche reste allumée 3 secondes
+6. Relais CLIC (désactivation)
+7. Système prêt pour prochaine détection
